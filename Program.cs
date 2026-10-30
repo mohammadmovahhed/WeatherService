@@ -23,4 +23,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapGet("/api/weather", async (WeatherService.Services.WeatherOrchestrator orchestrator) =>
+{
+    var data = await orchestrator.GetWeatherDataAsync();
+    if (data == null)
+    {
+        return Results.Ok((string?)null);
+    }
+
+    return Results.Ok(data);
+})
+.WithName("GetWeather");
+
 app.Run();
