@@ -7,9 +7,11 @@ namespace WeatherService.Services;
 public class DatabaseService
 {
     private readonly AppDbContext _context;
-    public DatabaseService(AppDbContext context)
+    private readonly ILogger<DatabaseService> _logger;
+    public DatabaseService(AppDbContext context, ILogger<DatabaseService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task<bool> SaveWeatherDataAsync(string rawData, double latitude, double longitude)
@@ -26,10 +28,13 @@ public class DatabaseService
 
             _context.WeatherRecords.Add(record);
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Weather data saved to database for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to save weather data to database.");
             return false;
         }
     }
@@ -43,10 +48,20 @@ public class DatabaseService
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
 
+            if (latestRecord == null)
+            {
+                _logger.LogInformation("No cached weather data found for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
+            }
+            else
+            {
+                _logger.LogInformation("Cached weather data retrieved for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
+            }
+
             return latestRecord?.RawData;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to retrieve weather data from database.");
             return null;
         }
     }
