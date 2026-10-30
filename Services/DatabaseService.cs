@@ -14,7 +14,7 @@ public class DatabaseService
         _logger = logger;
     }
 
-    public async Task<bool> SaveWeatherDataAsync(string rawData, double latitude, double longitude)
+    public async Task<bool> SaveWeatherDataAsync(string rawData, double latitude, double longitude, CancellationToken cancellationToken)
     {
         try
         {
@@ -27,10 +27,15 @@ public class DatabaseService
             };
 
             _context.WeatherRecords.Add(record);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Weather data saved to database for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Database save operation was canceled.");
+            return false;
         }
         catch (Exception ex)
         {
@@ -39,14 +44,14 @@ public class DatabaseService
         }
     }
 
-    public async Task<string?> GetLatestWeatherDataAsync(double latitude, double longitude)
+    public async Task<string?> GetLatestWeatherDataAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
         try
         {
             var latestRecord = await _context.WeatherRecords
                 .Where(r => r.Latitude == latitude && r.Longitude == longitude)
                 .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (latestRecord == null)
             {
@@ -58,6 +63,11 @@ public class DatabaseService
             }
 
             return latestRecord?.RawData;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("Database read operation was canceled.");
+            return null;
         }
         catch (Exception ex)
         {

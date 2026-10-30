@@ -17,19 +17,19 @@ public class ExternalWeatherService
         _logger = logger;
     }
 
-    public async Task<string?> GetWeatherRawDataAsync(double latitude, double longitude)
+    public async Task<string?> GetWeatherRawDataAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
         try
         {
             _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
 
             var url = $"{_settings.BaseUrl}?latitude={latitude}&longitude={longitude}&current_weather=true"; //hourly=temperature_2m
-            var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(url, cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("Weather data successfully fetched from API for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
-                return await response.Content.ReadAsStringAsync();
+                return await response.Content.ReadAsStringAsync(cancellationToken);
             }
 
             // اگر خطا داد (مثلاً به خاطر 30٪ قطعی اینترنت خودرو)
@@ -39,6 +39,11 @@ public class ExternalWeatherService
         catch (TaskCanceledException)
         {
             _logger.LogWarning("Request to weather API timed out after {Timeout} seconds.", _settings.TimeoutSeconds);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("The request was canceled by the client.");
             return null;
         }
         catch (HttpRequestException ex)

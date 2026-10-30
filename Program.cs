@@ -26,12 +26,20 @@ app.UseHttpsRedirection();
 app.MapGet("/api/weather", async (
     double? lat,
     double? lon,
-    WeatherService.Services.WeatherOrchestrator orchestrator) =>
+    WeatherService.Services.WeatherOrchestrator orchestrator,
+    HttpContext httpContext) =>
 {
+    // اعتبارسنجی مختصات
+    if ((lat.HasValue && (lat < -90 || lat > 90)) || (lon.HasValue && (lon < -180 || lon > 180)))
+    {
+        return Results.BadRequest("Invalid coordinates. Latitude must be between -90 and 90, Longitude between -180 and 180.");
+    }
+
     double latitude = lat ?? 52.52;
     double longitude = lon ?? 13.41;
 
-    var data = await orchestrator.GetWeatherDataAsync(latitude, longitude);
+    var cancellationToken = httpContext.RequestAborted;
+    var data = await orchestrator.GetWeatherDataAsync(latitude, longitude, cancellationToken);
     if (data == null)
     {
         return Results.Ok((string?)null);

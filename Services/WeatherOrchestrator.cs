@@ -13,22 +13,22 @@ public class WeatherOrchestrator
         _logger = logger;
     }
 
-    public async Task<string?> GetWeatherDataAsync(double latitude, double longitude)
+    public async Task<string?> GetWeatherDataAsync(double latitude, double longitude, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Processing weather request for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
 
         //get from api.open-meteo.com and save in database
-        var freshData = await _externalWeatherService.GetWeatherRawDataAsync(latitude, longitude);
+        var freshData = await _externalWeatherService.GetWeatherRawDataAsync(latitude, longitude, cancellationToken);
         if (freshData != null)
         {
-            await _databaseService.SaveWeatherDataAsync(freshData, latitude, longitude);
+            await _databaseService.SaveWeatherDataAsync(freshData, latitude, longitude, cancellationToken);
             return freshData;
         }
 
         // get last data from database
         _logger.LogWarning("Falling back to cached data due to network failure or save error.");
 
-        var cachedData = await _databaseService.GetLatestWeatherDataAsync(latitude, longitude);
+        var cachedData = await _databaseService.GetLatestWeatherDataAsync(latitude, longitude, cancellationToken);
         if (cachedData == null)
             _logger.LogError("No data available. Internet is down and database is empty for this location Lat: {Lat}, Lon: {Lon}", latitude, longitude);
 
