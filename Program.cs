@@ -11,6 +11,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.Configure<WeatherService.Dtos.WeatherApiSettings>(builder.Configuration.GetSection("WeatherApi"));
 builder.Services.AddHttpClient<WeatherService.Services.ExternalWeatherService>();
 builder.Services.AddScoped<WeatherService.Services.DatabaseService>();
+builder.Services.AddScoped<WeatherService.Services.WeatherOrchestrator>();
 
 var app = builder.Build();
 
