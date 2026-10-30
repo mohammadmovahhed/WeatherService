@@ -17,12 +17,12 @@ public class WeatherOrchestrator
         var freshData = await _externalWeatherService.GetWeatherRawDataAsync(latitude, longitude);
         if (freshData != null)
         {
-            await _databaseService.SaveWeatherDataAsync(freshData);
+            await _databaseService.SaveWeatherDataAsync(freshData, latitude, longitude);
             return freshData;
         }
 
         // get last data from database
-        var cachedData = await _databaseService.GetLatestWeatherDataAsync();
+        var cachedData = await _databaseService.GetLatestWeatherDataAsync(latitude, longitude);
         return cachedData;
     }
 }

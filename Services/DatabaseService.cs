@@ -12,13 +12,15 @@ public class DatabaseService
         _context = context;
     }
 
-    public async Task<bool> SaveWeatherDataAsync(string rawData)
+    public async Task<bool> SaveWeatherDataAsync(string rawData, double latitude, double longitude)
     {
         try
         {
             var record = new WeatherRecord
             {
                 RawData = rawData,
+                Latitude = latitude,
+                Longitude = longitude,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -32,11 +34,12 @@ public class DatabaseService
         }
     }
 
-    public async Task<string?> GetLatestWeatherDataAsync()
+    public async Task<string?> GetLatestWeatherDataAsync(double latitude, double longitude)
     {
         try
         {
             var latestRecord = await _context.WeatherRecords
+                .Where(r => r.Latitude == latitude && r.Longitude == longitude)
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
 

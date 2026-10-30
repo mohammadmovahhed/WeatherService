@@ -26,6 +26,12 @@ namespace WeatherService.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<double>("Latitude")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("REAL");
+
                     b.Property<string>("RawData")
                         .IsRequired()
                         .HasColumnType("TEXT");
