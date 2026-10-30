@@ -31,7 +31,7 @@ app.MapGet("/api/weather", async (WeatherService.Services.WeatherOrchestrator or
         return Results.Ok((string?)null);
     }
 
-    return Results.Ok(data);
+    return Results.Content(data, "application/json");
 })
 .WithName("GetWeather");
 
