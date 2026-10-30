@@ -23,9 +23,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/api/weather", async (WeatherService.Services.WeatherOrchestrator orchestrator) =>
+app.MapGet("/api/weather", async (
+    double? lat,
+    double? lon,
+    WeatherService.Services.WeatherOrchestrator orchestrator) =>
 {
-    var data = await orchestrator.GetWeatherDataAsync();
+    double latitude = lat ?? 52.52;
+    double longitude = lon ?? 13.41;
+
+    var data = await orchestrator.GetWeatherDataAsync(latitude, longitude);
     if (data == null)
     {
         return Results.Ok((string?)null);

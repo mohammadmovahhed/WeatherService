@@ -344,6 +344,11 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
+# SQLite Database files
+*.db
+*.db-shm
+*.db-wal
+
 # MFractors (Xamarin productivity tool) working folder
 .mfractor/
 

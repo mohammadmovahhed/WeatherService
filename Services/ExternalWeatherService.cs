@@ -14,15 +14,14 @@ public class ExternalWeatherService
         _settings = settings.Value;
     }
 
-    public async Task<string?> GetWeatherRawDataAsync()
+    public async Task<string?> GetWeatherRawDataAsync(double latitude, double longitude)
     {
         try
         {
             _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
 
-            // درخواست به API (به عنوان مثال برای تهران)
-            // نکته: داده‌ها به صورت رشته (String) دریافت می‌شوند تا بدون تغییر باقی بمانند
-            var response = await _httpClient.GetAsync(_settings.BaseUrl + "?latitude=35.6892&longitude=51.3890&current_weather=true");
+            var url = $"{_settings.BaseUrl}?latitude={latitude}&longitude={longitude}&current_weather=true"; //hourly=temperature_2m
+            var response = await _httpClient.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
                 return await response.Content.ReadAsStringAsync();

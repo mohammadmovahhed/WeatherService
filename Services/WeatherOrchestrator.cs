@@ -11,10 +11,10 @@ public class WeatherOrchestrator
         _databaseService = databaseService;
     }
 
-    public async Task<string?> GetWeatherDataAsync()
+    public async Task<string?> GetWeatherDataAsync(double latitude, double longitude)
     {
         //get from api.open-meteo.com and save in database
-        var freshData = await _externalWeatherService.GetWeatherRawDataAsync();
+        var freshData = await _externalWeatherService.GetWeatherRawDataAsync(latitude, longitude);
         if (freshData != null)
         {
             await _databaseService.SaveWeatherDataAsync(freshData);
