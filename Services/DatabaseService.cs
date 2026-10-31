@@ -21,8 +21,8 @@ public class DatabaseService
             var record = new WeatherRecord
             {
                 RawData = rawData,
-                Latitude = latitude,
-                Longitude = longitude,
+                Latitude = Math.Round(latitude, 3),     //به سه رقم محدود محدود میکنیم (دقت حدود 100 متر میشه)
+                Longitude = Math.Round(longitude, 3),
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -48,8 +48,11 @@ public class DatabaseService
     {
         try
         {
+            var searchLat = Math.Round(latitude, 3);    //به سه رقم محدود محدود میکنیم (دقت حدود 100 متر میشه)
+            var searchLon = Math.Round(longitude, 3);
+
             var latestRecord = await _context.WeatherRecords
-                .Where(r => r.Latitude == latitude && r.Longitude == longitude)
+                .Where(r => r.Latitude == searchLat && r.Longitude == searchLon)
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 

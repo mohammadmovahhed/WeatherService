@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using System.Globalization;
 using WeatherService.Dtos;
 
 namespace WeatherService.Services;
@@ -23,7 +24,10 @@ public class ExternalWeatherService
         {
             _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
 
-            var url = $"{_settings.BaseUrl}?latitude={latitude}&longitude={longitude}&current_weather=true"; //hourly=temperature_2m
+            var url = string.Format(CultureInfo.InvariantCulture,
+                "{0}?latitude={1}&longitude={2}&current_weather=true",  //hourly=temperature_2m
+                _settings.BaseUrl, latitude, longitude); 
+
             using (var response = await _httpClient.GetAsync(url, cancellationToken))
             {
                 if (response.IsSuccessStatusCode)
@@ -37,14 +41,14 @@ public class ExternalWeatherService
                 return null;
             }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning("Request to weather API timed out after {Timeout} seconds.", _settings.TimeoutSeconds);
-            return null;
+            _logger.LogInformation("The request was canceled by the client.");
+            throw;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogWarning("The request was canceled by the client.");
+            _logger.LogWarning(ex, "Request to weather API timed out.");
             return null;
         }
         catch (HttpRequestException ex)

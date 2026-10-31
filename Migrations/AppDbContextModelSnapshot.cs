@@ -38,6 +38,8 @@ namespace WeatherService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Latitude", "Longitude", "CreatedAt");
+
                     b.ToTable("WeatherRecords");
                 });
 #pragma warning restore 612, 618

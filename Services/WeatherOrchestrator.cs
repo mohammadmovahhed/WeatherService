@@ -6,10 +6,7 @@ public class WeatherOrchestrator
     private readonly DatabaseService _databaseService;
     private readonly ILogger<WeatherOrchestrator> _logger;
 
-    public WeatherOrchestrator(
-        ExternalWeatherService externalWeatherService,
-        DatabaseService databaseService,
-        ILogger<WeatherOrchestrator> logger)
+    public WeatherOrchestrator(ExternalWeatherService externalWeatherService, DatabaseService databaseService, ILogger<WeatherOrchestrator> logger)
     {
         _externalWeatherService = externalWeatherService;
         _databaseService = databaseService;
@@ -28,45 +25,53 @@ public class WeatherOrchestrator
         {
             freshData = await _externalWeatherService.GetWeatherRawDataAsync(latitude, longitude, apiLinkedCts.Token);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("External API timed out (1.5s).");
+            _logger.LogWarning("External API budget (1.5s) exhausted.");
         }
+
 
         if (freshData != null)
         {
-            var isSaved = await _databaseService.SaveWeatherDataAsync(freshData, latitude, longitude, cancellationToken);
+            using var saveTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(0.5));
+            using var saveLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, saveTimeoutCts.Token);
 
-            if (isSaved)
+            try
             {
-                _logger.LogInformation("Data fetched and saved successfully.");
-                return freshData;
+                var isSaved = await _databaseService.SaveWeatherDataAsync(freshData, latitude, longitude, saveLinkedCts.Token);
+                if (isSaved) 
+                    return freshData;
             }
-            else
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _logger.LogWarning("Data fetched but failed to save. Attempting fallback to cached data.");
-                // اگر ذخیره خطا داد، به جای برگرداندن داده تازه، سراغ دیتابیس می‌رویم تا از داده‌های قبلی مطمئن شویم
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Database save budget (0.5s) exhausted.");
             }
         }
 
-        using var dbTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(1.5));
+
+        using var dbTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(1.0));
         using var dbLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, dbTimeoutCts.Token);
 
         try
         {
             _logger.LogWarning("Falling back to cached data for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
-            var cachedData = await _databaseService.GetLatestWeatherDataAsync(latitude, longitude, dbLinkedCts.Token);
-
-            if (cachedData == null)
-            {
-                _logger.LogError("No data available. Internet is down and database is empty.");
-            }
-
-            return cachedData;
+            return await _databaseService.GetLatestWeatherDataAsync(latitude, longitude, dbLinkedCts.Token);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (OperationCanceledException)
         {
-            _logger.LogError("Database fallback timed out (1.5s). Returning null.");
+            _logger.LogError("Database fallback budget (1.0s) exhausted. Returning null.");
             return null;
         }
     }
