@@ -17,6 +17,8 @@ builder.Services.AddHttpClient<WeatherService.Services.ExternalWeatherService>()
 builder.Services.AddScoped<WeatherService.Services.DatabaseService>();
 builder.Services.AddScoped<WeatherService.Services.WeatherOrchestrator>();
 
+builder.Services.AddHostedService<WeatherService.BackgroundServices.DbCleanupService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
