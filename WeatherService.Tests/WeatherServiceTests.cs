@@ -5,6 +5,7 @@ using Moq;
 using Moq.Protected;
 using WeatherService.Data;
 using WeatherService.Dtos;
+using WeatherService.Models;
 using WeatherService.Services;
 
 namespace WeatherService.Tests
@@ -92,14 +93,21 @@ namespace WeatherService.Tests
         }
 
         [Fact]
-        public async Task GetWeatherDataAsync_WhenSaveFails_ReturnsCachedData()
+        public async Task GetWeatherDataAsync_WhenSaveFailsButCacheExists_ReturnsCachedData()
         {
-            var context = GetInMemoryDbContext();
-            var dbService = new DatabaseService(context, _mockDbLogger.Object);
-            
-            await dbService.SaveWeatherDataAsync("{\"temp\": 20}", 35.0, 51.0, CancellationToken.None);
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
 
-            // شبیه‌سازی API که جواب می‌دهد
+            // استفاده از یک کانتکست خاص که فقط زمان ذخیره خطا می‌دهد
+            var context = new FailingSaveDbContext(options);
+            var dbService = new DatabaseService(context, _mockDbLogger.Object);
+
+            // ذخیره دستی یک داده در کش
+            context.WeatherRecords.Add(new WeatherRecord { RawData = "{\"temp\": 20}", Latitude = 35.0, Longitude = 51.0, CreatedAt = DateTime.UtcNow });
+            context.SaveChanges();
+
+            // شبیه‌سازی API موفق
             var mockHttpHandler = new Mock<HttpMessageHandler>();
             mockHttpHandler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -108,14 +116,12 @@ namespace WeatherService.Tests
             var httpClient = new HttpClient(mockHttpHandler.Object);
             var extService = new ExternalWeatherService(httpClient, Options.Create(_apiSettings), _mockExtLogger.Object);
 
-            // شبیه‌سازی خطای دیتابیس با استفاده از یک Context نامعتبر (یا Dispose شده)
-            context.Dispose();
             var orchestrator = new WeatherOrchestrator(extService, dbService, _mockOrchLogger.Object);
 
             var result = await orchestrator.GetWeatherDataAsync(35.0, 51.0, CancellationToken.None);
 
-            // چون دیتابیس خطا داد، باید null برگرداند (چون context dispose شده و کش هم خوانده نمی‌شود)
-            Assert.Null(result);
+            // بررسی: باید داده کش شده قبلی (20) را برگرداند نه داده جدید (30)
+            Assert.Equal("{\"temp\": 20}", result);
         }
     }
 }

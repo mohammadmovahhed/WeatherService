@@ -69,8 +69,7 @@ public class DatabaseService
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Database read operation was canceled.");
-            return null;
+            throw;
         }
         catch (Exception ex)
         {
