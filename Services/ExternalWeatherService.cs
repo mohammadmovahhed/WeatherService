@@ -24,17 +24,18 @@ public class ExternalWeatherService
             _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
 
             var url = $"{_settings.BaseUrl}?latitude={latitude}&longitude={longitude}&current_weather=true"; //hourly=temperature_2m
-            var response = await _httpClient.GetAsync(url, cancellationToken);
-
-            if (response.IsSuccessStatusCode)
+            using (var response = await _httpClient.GetAsync(url, cancellationToken))
             {
-                _logger.LogInformation("Weather data successfully fetched from API for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
-                return await response.Content.ReadAsStringAsync(cancellationToken);
-            }
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Weather data successfully fetched from API for Lat: {Lat}, Lon: {Lon}", latitude, longitude);
+                    return await response.Content.ReadAsStringAsync(cancellationToken);
+                }
 
-            // اگر خطا داد (مثلاً به خاطر 30٪ قطعی اینترنت خودرو)
-            _logger.LogWarning("API returned non-success status: {StatusCode}", response.StatusCode);
-            return null;
+                // اگر خطا داد (مثلاً به خاطر 30٪ قطعی اینترنت خودرو)
+                _logger.LogWarning("API returned non-success status: {StatusCode}", response.StatusCode);
+                return null;
+            }
         }
         catch (TaskCanceledException)
         {

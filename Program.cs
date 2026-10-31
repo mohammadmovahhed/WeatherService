@@ -29,11 +29,11 @@ app.MapGet("/api/weather", async (
     WeatherService.Services.WeatherOrchestrator orchestrator,
     HttpContext httpContext) =>
 {
-    // اعتبارسنجی مختصات
+    if (lat.HasValue != lon.HasValue)
+        return Results.BadRequest("Both lat and lon must be provided together.");
+
     if ((lat.HasValue && (lat < -90 || lat > 90)) || (lon.HasValue && (lon < -180 || lon > 180)))
-    {
         return Results.BadRequest("Invalid coordinates. Latitude must be between -90 and 90, Longitude between -180 and 180.");
-    }
 
     double latitude = lat ?? 52.52;
     double longitude = lon ?? 13.41;
